@@ -176,7 +176,6 @@ function createLicenseLabel(text, title, fgColor, bgColor) {
   label.title = title;
 
   label.style.marginLeft = "4px";
-  label.style.border = "1px solid white";
   label.style.borderRadius = "6px";
   label.style.padding = "1px 4px";
   label.style.backgroundColor = bgColor;
