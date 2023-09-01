@@ -125,7 +125,9 @@ function identifyProjectLicense(licenseLink) {
 }
 
 function isOSSLicense(license) {
-  return ossLicenses.find((ossLicense) => license.match(ossLicense)) != null;
+  return ossLicenses.find((ossLicense) => {
+    return ossLicense.toLowerCase() == license.toLowerCase()
+  }) != null;
 }
 
 function annotateProjectPage() {
