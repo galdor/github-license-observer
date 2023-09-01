@@ -108,7 +108,7 @@ function findLicenseLink() {
   const aboutCell = aboutTitle.parentElement;
 
   return [...aboutCell.querySelectorAll("a")].find((link) => {
-    return link.href.match(/LICENSE|COPYING/i);
+    return link.href.match(/\/(LICENSE|COPYING)(\.[a-z]+)?$/i);
   });
 }
 
