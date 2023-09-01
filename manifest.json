@@ -1,0 +1,17 @@
+{
+  "manifest_version": 2,
+
+  "name": "GitHub License Observer",
+  "version": "1.0",
+  "description": "Annotate GitHub projects with information about their license.",
+
+  "icons": {
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["*://*.github.com/*"],
+      "js": ["github-license-observer.js"]
+    }
+  ]
+}
