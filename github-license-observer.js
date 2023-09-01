@@ -154,7 +154,7 @@ function annotateProjectPage() {
     bgColor = "#c14e4a";
     fgColor = "white";
     text = "not open source";
-    title = "The license is not an OSI Approved License.";
+    title = "The license \"" + license + "\" is not an OSI Approved License.";
   }
 
   const label = createLicenseLabel(text, title, fgColor, bgColor);
