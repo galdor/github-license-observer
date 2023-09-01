@@ -2,8 +2,12 @@
   "manifest_version": 2,
 
   "name": "GitHub License Observer",
+  "short_name": "GHLicenseObs",
   "version": "1.0",
   "description": "Annotate GitHub projects with information about their license.",
+
+  "author": "Nicolas Martyanoff",
+  "homepage_url": "https://github.com/galdor/github-license-observer",
 
   "icons": {
   },
