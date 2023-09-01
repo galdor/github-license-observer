@@ -37,12 +37,12 @@ const ossLicenses = [
   "EUPL-1.2",            // European Union Public License, version 1.2
   "Fair",                // Fair License
   "Frameworx-1.0",       // Frameworx License 1.0
-  "AGPL-3.0-only",       // GNU Affero General Public License version 3
+  "AGPL-3.0",            // GNU Affero General Public License version 3
   "GPL-2.0",             // GNU General Public License version 2
-  "GPL-3.0-only",        // GNU General Public License version 3
+  "GPL-3.0",             // GNU General Public License version 3
   "LGPL-2.1",            // GNU Lesser General Public License version 2.1
-  "LGPL-3.0-only",       // GNU Lesser General Public License version 3
-  "LGPL-2.0-only",       // GNU Library General Public License version 2
+  "LGPL-3.0",            // GNU Lesser General Public License version 3
+  "LGPL-2.0",            // GNU Library General Public License version 2
   "HPND",                // Historical Permission Notice and Disclaimer
   "IPL-1.0",             // IBM Public License Version 1.0
   "Intel",               // Intel Open Source License
