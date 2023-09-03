@@ -117,6 +117,39 @@ function findLicenseLink() {
   });
 }
 
+function fetchLicenseFile(uriString) {
+  // We must replace https://github.com/<org>/<repo>/blob/<ref>/<subpath>
+  // with https://raw.githubusercontent.com/<org>/<repo>/<ref>/LICENSE
+  const uri = new URL(uriString);
+
+  uri.hostname = "raw.githubusercontent.com";
+
+  const path = uri.pathname;
+
+  var segments = path.slice(1).split("/");
+  if (segments.length < 4 || segments[2] != "blob") {
+    console.error("invalid uri", uri);
+    return;
+  }
+
+  segments = segments.slice(0, 2).concat(segments.slice(3));
+  uri.pathname = "/" + segments.join("/");
+
+  console.info("downloading license file from", uri.href);
+
+  var req = new XMLHttpRequest();
+  req.open("GET", uri.href, false);
+  req.send();
+
+  if (req.status < 200 || req.status > 299) {
+    console.error("cannot fetch", uri.href, ":", "request failed with status",
+                  req.status);
+    return;
+  }
+
+  return req.responseText;
+}
+
 function identifyProjectLicense(licenseLink) {
   // The link is either "<license-name> license" or "View License" if the
   // license was not identified by GitHub.
@@ -125,8 +158,24 @@ function identifyProjectLicense(licenseLink) {
     return license;
   }
 
-  // TODO Fetch the license file
-  return "unknown";
+  const text = fetchLicenseFile(licenseLink.href);
+  if (text == null) {
+    return;
+  }
+
+  // We are in uncharted territory. There is no standard format for licenses
+  // and no one cares about SPDX, so we have to try and hope for the best.
+  //
+  // See https://spdx.org/licenses/ for SPDX license identifiers.
+
+  if (text.match(/^Business Source License 1.1$/im)) {
+    // E.g. https://github.com/hashicorp/terraform/blob/main/LICENSE
+    return "BUSL-1.1";
+  } else if (text.match(/^\s*Server Side Public License$/im)
+             && text.match(/\s*VERSION 1,/im)) {
+    // E.g. https://github.com/mongodb/mongo/blob/master/LICENSE-Community.txt
+    return "SSPL-1.0";
+  }
 }
 
 function isOSSLicense(license) {
@@ -138,12 +187,17 @@ function isOSSLicense(license) {
 function annotateProjectPage() {
   const licenseLink = findLicenseLink();
   if (!licenseLink) {
-    console.debug("license link not found");
+    console.info("license link not found");
     return;
   }
 
   const license = identifyProjectLicense(licenseLink);
-  console.debug("identified license", license);
+  if (!license) {
+    console.info("cannot identify license");
+    return;
+  }
+
+  console.info("identified license", license);
 
   var text, bgColor, fgColor, title
 
@@ -156,12 +210,12 @@ function annotateProjectPage() {
     bgColor = "#347d39";
     fgColor = "white";
     text = "open source";
-    title = "The license is an OSI Approved License.";
+    title = `The ${license} license is an OSI Approved License.`;
   } else {
     bgColor = "#c14e4a";
     fgColor = "white";
     text = "not open source";
-    title = "The license \"" + license + "\" is not an OSI Approved License.";
+    title = `The ${license} license is not an OSI Approved License.`;
   }
 
   const label = createLicenseLabel(text, title, fgColor, bgColor);

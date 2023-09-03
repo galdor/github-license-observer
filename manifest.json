@@ -18,5 +18,9 @@
       "js": ["github-license-observer.js"],
       "run_at": "document_idle"
     }
+  ],
+
+  "permissions": [
+    "*://raw.githubusercontent.com/*"
   ]
 }
