@@ -3,6 +3,8 @@
 This project is a small Firefox add-on that annotates GitHub pages to clearly
 indicate whether the license is an actual Open Source license or not.
 
+![](screenshots/not-oss.png)
+
 ## Usage
 This add-on is currently in development and is not available as a packaged
 add-on. To try it out:
@@ -20,10 +22,12 @@ The label is green for Open Source licenses, red for licenses whose name does
 not match any known Open Source license, and blue when the license could not
 be identified.
 
-In the current state, the add-on only relies on the license identifier
-displayed by GitHub. Custom license analysis will be added soon.
+## Contributions
+This add-on uses the license identifier displayed by GitHub if there is one,
+and falls back to analyzing the license file if there is not.
 
-Feel free to open an issue for any identification error.
+Matching custom licenses is hard. Feel free to open an issue for any
+identification error!
 
 ## Licensing
 This add-on is open source software distributed under the
