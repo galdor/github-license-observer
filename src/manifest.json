@@ -10,6 +10,8 @@
   "homepage_url": "https://github.com/galdor/github-license-observer",
 
   "icons": {
+    "48": "icon-48.png",
+    "96": "icon-96.png"
   },
 
   "content_scripts": [
