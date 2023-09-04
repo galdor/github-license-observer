@@ -110,10 +110,11 @@ function findLicenseLink() {
   return [...aboutCell.querySelectorAll("a")].find((link) => {
     // Examples:
     //
-    // LICENSE
-    // COPYING.txt
-    // LICENSE-Community.txt
-    return link.href.match(/\/(LICENSE|COPYING)([-_][^.]+)?(\.[a-z]+)?$/i);
+    // /blob/master/LICENSE
+    // /blob/main/COPYING.txt
+    // /blob/my-branch/LICENSE-Community.txt
+    return link.href.match(
+      /\/blob\/[^/]+\/(LICENSE|COPYING)([-_][^.]+)?(\.[a-z]+)?$/i);
   });
 }
 
