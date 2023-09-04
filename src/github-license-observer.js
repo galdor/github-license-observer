@@ -32,9 +32,10 @@ const ossLicenseRESPDXLine =
 const labelClass = "github-license-observer-label";
 
 function findLicenseLink() {
-  const aboutTitle = [...document.querySelectorAll("h2")].find((title) => {
-    return title.textContent.trim() == "About";
-  });
+  const aboutTitle = [...document.querySelectorAll(".Layout-sidebar h2")]
+        .find((title) => {
+          return title.textContent.trim() == "About";
+        });
   if (!aboutTitle) {
     return null;
   }
