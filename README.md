@@ -6,8 +6,10 @@ indicate whether the license is an actual Open Source license or not.
 ![](screenshots/not-oss.png)
 
 ## Usage
-This add-on is currently in development and is not available as a packaged
-add-on. To try it out:
+This add-on is available on the [official Mozilla extension
+website](https://addons.mozilla.org/addon/github-license-observer).
+
+You can also temporarily install the development version. To do so:
 
 - Clone the repository.
 - Open "about:debugging" in Firefox.
