@@ -23,11 +23,11 @@ const ossLicenses = [
 
 // Built using regexp-opt in Emacs and some manual adjustments since Emacs
 // regexps and JS regexps are different.
-const ossLicenseRegexpString = "(A(AL|FL-3.0|GPL-3.0|P((L-1|SL-2).0)|pache-(1.1|2.0)|rtistic-(1.0(-Perl)?|2.0))|BS(D-(1-Clause|2-Clause(-Patent)?|3-Clause(-LBNL)?)|L-1.0)|C(A(L-1.0|TOSL-1.1)|DDL-1.0|E(CILL-2.1|RN-OHL-([PSW]-2.0))|NRI-Python|(PA?|UA-OP)L-1.0)|E(CL-([12].0)|FL-([12].0)|PL-([12].0)|U(Datagrid|PL-1.[12])|ntessa)|F(air|rameworx-1.0)|GPL-([23].0)|HPND|I(P(A|L-1.0)|SC|ntel)|Jam|L(GPL-(2.[01]|3.0)|P(L-1.02?|PL-1.3c)|iLiQ-((Rplus|[PR])-1.1))|M(IT(-0)?|PL-(1.[01]|2.0)|S-([PR]L)|irOS|otosoto|ul(anPSL-2.0|tics))|N(ASA-1.3|GPL|OKIA|POSL-3.0|TP|aumen)|O(FL-1.1|GTSL|L(DAP-2.8|FL-1.3)|S(ET-PL-2.1|L-(1.0|2.1)))|P(HP-3.01?|SF-2.0)|RP(L-1.[15]|SL-1.0)|S(ISSL|(PL-1|imPL-2).0)|eCos-2.0)";
-const ossLicenseRegexp =
-      new RegExp(ossLicenseRegexpString, "i");
-const ossLicenseRegexpAnchored =
-      new RegExp("^" + ossLicenseRegexpString + "$", "i");
+const ossLicenseREString = "(?:A(?:AL|FL-3.0|GPL-3.0|P(?:(?:L-1|SL-2).0)|pache-(?:1.1|2.0)|rtistic-(?:1.0(?:-Perl)?|2.0))|BS(?:D-(?:1-Clause|2-Clause(?:-Patent)?|3-Clause(?:-LBNL)?)|L-1.0)|C(?:A(?:L-1.0|TOSL-1.1)|DDL-1.0|E(?:CILL-2.1|RN-OHL-(?:[PSW]-2.0))|NRI-Python|(?:PA?|UA-OP)L-1.0)|E(?:CL-(?:[12].0)|FL-(?:[12].0)|PL-(?:[12].0)|U(?:Datagrid|PL-1.[12])|ntessa)|F(?:air|rameworx-1.0)|GPL-(?:[23].0)|HPND|I(?:P(?:A|L-1.0)|SC|ntel)|Jam|L(?:GPL-(?:2.[01]|3.0)|P(?:L-1.02?|PL-1.3c)|iLiQ-(?:(?:Rplus|[PR])-1.1))|M(?:IT(?:-0)?|PL-(?:1.[01]|2.0)|S-(?:[PR]L)|irOS|otosoto|ul(?:anPSL-2.0|tics))|N(?:ASA-1.3|GPL|OKIA|POSL-3.0|TP|aumen)|O(?:FL-1.1|GTSL|L(?:DAP-2.8|FL-1.3)|S(?:ET-PL-2.1|L-(?:1.0|2.1)))|P(?:HP-3.01?|SF-2.0)|RP(?:L-1.[15]|SL-1.0)|S(?:ISSL|(?:PL-1|imPL-2).0)|eCos-2.0)";
+const ossLicenseRE = new RegExp(ossLicenseREString, "i");
+const ossLicenseREAnchored = new RegExp("^" + ossLicenseREString + "$", "i");
+const ossLicenseRESPDXLine =
+      new RegExp("SPDX\\s+(?:\\S+\\s+)*(" + ossLicenseREString + ")", "i");
 
 const labelClass = "github-license-observer-label";
 
@@ -99,11 +99,21 @@ function identifyProjectLicense(licenseLink) {
   }
 
   // We are in uncharted territory. There is no standard format for licenses
-  // and no one cares about SPDX, so we have to try and hope for the best.
+  // so we have to try and hope for the best.
   //
   // See https://spdx.org/licenses/ for SPDX license identifiers.
 
-  if (text.match(/^Business Source License 1.1$/im)) {
+  // Some licenses add a header containing a SPDX identifier, for example
+  // https://github.com/microcosm-cc/bluemonday. Infortunately there is no
+  // standard format for this header, so check if it somehow looks like a SPDX
+  // header followed by a license we know about (i.e. one of the OSS
+  // licenses).
+  const firstLine = text.match(/^.*$/m)[0];
+  const firstLineMatch = firstLine.match(ossLicenseRESPDXLine);
+
+  if (firstLineMatch) {
+    return firstLineMatch[1];
+  } else if (text.match(/^Business Source License 1.1$/im)) {
     // E.g. https://github.com/hashicorp/terraform/blob/main/LICENSE
     return "BUSL-1.1";
   } else if (text.match(/^\s*Server Side Public License$/im)
@@ -114,7 +124,7 @@ function identifyProjectLicense(licenseLink) {
 }
 
 function isOSSLicense(license) {
-  return !!license.toLowerCase().match(ossLicenseRegexpAnchored);
+  return !!license.toLowerCase().match(ossLicenseREAnchored);
 }
 
 function annotateProjectPage() {
