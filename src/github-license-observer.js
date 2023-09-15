@@ -49,10 +49,11 @@ function findLicenseLink() {
     // Examples:
     //
     // /blob/master/LICENSE
+    // /blob/master/MIT-LICENSE
     // /blob/main/COPYING.txt
     // /blob/my-branch/LICENSE-Community.txt
     return link.href.match(
-      /\/blob\/[^/]+\/(LICENSE|COPYING)([-_][^.]+)?(\.[a-z]+)?$/i);
+      /\/blob\/[^/]+\/((MIT-)?LICENSE|COPYING)([-_][^.]+)?(\.[a-z]+)?$/i);
   });
 }
 
