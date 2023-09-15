@@ -49,11 +49,16 @@ function findLicenseLink() {
     // Examples:
     //
     // /blob/master/LICENSE
+    // /blob/master/./LICENSE
     // /blob/master/MIT-LICENSE
     // /blob/main/COPYING.txt
     // /blob/my-branch/LICENSE-Community.txt
+    //
+    // The extra "." path segment is used by GitHub when there are multiple
+    // license links with some kind of dynamic dialog. E.g.
+    // https://github.com/akka/akka.
     return link.href.match(
-      /\/blob\/[^/]+\/((MIT-)?LICENSE|COPYING)([-_][^.]+)?(\.[a-z]+)?$/i);
+      /\/blob\/[^/]+\/(\/\.\/)?((MIT-)?LICENSE|COPYING)([-_][^.]+)?(\.[a-z]+)?$/i);
   });
 }
 
@@ -92,9 +97,14 @@ function fetchLicenseFile(uriString) {
 
 function identifyProjectLicense(licenseLink) {
   // The link is either "<license-name> license" or "View License" if the
-  // license was not identified by GitHub.
-  const license = licenseLink.text.trim().replace(/ License$/i, "");
-  if (license != "View") {
+  // license was not identified by GitHub. It can also contain HTML content
+  // which when converted to text will look like "Unknown LICENSE" (e.g.
+  // https://github.com/akka/akka).
+  const license = licenseLink.text
+                             .replace(/\s+/g, " ").trim()
+                             .replace(/ License$/i, "")
+                             .toLowerCase();
+  if (license != "view" && license != "unknown") {
     return license;
   }
 
@@ -172,7 +182,21 @@ function annotateProjectPage() {
     label.remove();
   });
 
-  licenseLink.parentElement.appendChild(label);
+  const container = licenseLink.closest("details");
+  if (container) {
+    // Multi-license container (e.g. https://github.com/akka/akka)
+    container.after(label);
+
+    // The text displayed by GitHub for multi-license blocks is usually very
+    // long, there is not enough horizontal space in the colomn for the label.
+    // So we put the label next line. Not ideal, but you work with what you
+    // have.
+    label.style.display = "inline-block";
+    label.style.marginTop = "0.25rem";
+  } else {
+    // Simplest, most common case
+    licenseLink.parentElement.appendChild(label);
+  }
 }
 
 function createLicenseLabel(text, title, fgColor, bgColor) {
