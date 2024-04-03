@@ -229,11 +229,24 @@ function annotateProjectPage() {
   });
 
 
-  const header = document.getElementById("repository-container-header");
-  const author = header.querySelector(".author");
-  const container = author.parentElement;
+  let container;
 
-  container.appendChild(label);
+  // The structure of the header is completely different depending on whether we
+  // are logged in or not.
+  let headerList =
+      document.querySelector(".AppHeader .AppHeader-context nav ul");
+  if (headerList) {
+    // We are logged in
+    const elt = document.createElement("li");
+    elt.appendChild(label);
+    headerList.appendChild(elt);
+  } else {
+    // We are not logged in
+    header = document.getElementById("repository-container-header");
+    const author = header.querySelector(".author");
+    container = author.parentElement;
+    container.appendChild(label);
+  }
 }
 
 function composeLicenseLabelText(licenses, notOSSLicenses) {
