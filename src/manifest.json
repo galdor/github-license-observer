@@ -3,7 +3,7 @@
 
   "name": "GitHub License Observer",
   "short_name": "GHLicenseObs",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Annotate GitHub projects with information about their license.",
 
   "author": "Nicolas Martyanoff",
