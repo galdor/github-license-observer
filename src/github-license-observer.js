@@ -35,81 +35,77 @@ const ossLicenseRESPDXLine =
 
 const labelClass = "github-license-observer-label";
 
-function findLicenseLink() {
+function findLicenseNames() {
   const aboutTitle = [...document.querySelectorAll(".Layout-sidebar h2")]
         .find((title) => {
           return title.textContent.trim() == "About";
         });
   if (!aboutTitle) {
-    return null;
+    return [];
   }
 
   const aboutCell = aboutTitle.parentElement;
 
-  return [...aboutCell.querySelectorAll("a")].find((link) => {
-    // Examples:
-    //
-    // /blob/master/LICENSE
-    // /blob/master/./LICENSE
-    // /blob/master/MIT-LICENSE
-    // /blob/main/COPYING.txt
-    // /blob/my-branch/LICENSE-Community.txt
-    //
-    // The extra "." path segment is used by GitHub when there are multiple
-    // license links with some kind of dynamic dialog. E.g.
-    // https://github.com/akka/akka.
-    return link.href.match(
-      /\/blob\/[^/]+\/(\/\.\/)?((MIT-)?LICENSE|COPYING)([-_][^.]+)?(\.[a-z]+)?$/i);
-  });
+  // Links are found in two cases:
+  // - For repositories containing a single license.
+  // - For repositories with multiple licenses where some of them are unknown.
+
+  let links = [...aboutCell.querySelectorAll("a")];
+
+  // In some cases, the license links do not actually point to the license files
+  // but contains a URI fragment used by some React BS to dynamically change a
+  // view lower in the page. Why do simple when you can puke Javascript
+  // everywhere. We can find the originally link somewhere hidden in the header.
+  // Do not ask me why, none of this makes sense anyway.
+  const container = document.getElementById("repository-container-header");
+  if (container != null) {
+    links = links.concat([...container.querySelectorAll("a")]);
+  }
+
+  let names = [];
+
+  for (let i = 0; i < links.length; i++) {
+    const link = links[i];
+
+    // First try the ARIA label (for repositories with multiple license)
+    let label = link["ariaLabel"];
+    if (!label) {
+      // Then try the text content (for repositories with a single license)
+      label = link.text;
+      if (!label) {
+        continue;
+      }
+    }
+
+    const text = label.trim();
+    const res = text.match(/(.+) license$/i);
+    if (res) {
+      let name = res[1];
+      const canonicalName = name.toLowerCase();
+
+      // The link text is "View license" or "Unknown license" if the license
+      // is unknown.
+      if (canonicalName == "unknown" || canonicalName == "view") {
+        // If the link points to the license file, we can fetch it and try to
+        // analyze it.
+        if (link.href) {
+          name = identifyLicenseLink(link.href);
+          if (name) {
+            names.push(name);
+          }
+        }
+      } else {
+        names.push(name);
+      }
+    }
+  }
+
+  // Totally intuitive way (by Javascript standards) to remove duplicates
+  return [...new Set(names)];
 }
 
-function fetchLicenseFile(uriString) {
-  // We must replace https://github.com/<org>/<repo>/blob/<ref>/<subpath>
-  // with https://raw.githubusercontent.com/<org>/<repo>/<ref>/LICENSE
-  const uri = new URL(uriString);
-
-  uri.hostname = "raw.githubusercontent.com";
-
-  const path = uri.pathname;
-
-  var segments = path.slice(1).split("/");
-  if (segments.length < 4 || segments[2] != "blob") {
-    console.error("invalid uri", uri);
-    return;
-  }
-
-  segments = segments.slice(0, 2).concat(segments.slice(3));
-  uri.pathname = "/" + segments.join("/");
-
-  console.info("downloading license file from", uri.href);
-
-  var req = new XMLHttpRequest();
-  req.open("GET", uri.href, false);
-  req.send();
-
-  if (req.status < 200 || req.status > 299) {
-    console.error("cannot fetch", uri.href, ":", "request failed with status",
-                  req.status);
-    return;
-  }
-
-  return req.responseText;
-}
-
-function identifyProjectLicense(licenseLink) {
-  // The link is either "<license-name> license" or "View License" if the
-  // license was not identified by GitHub. It can also contain HTML content
-  // which when converted to text will look like "Unknown LICENSE" (e.g.
-  // https://github.com/akka/akka).
-  const license = licenseLink.text
-                             .replace(/\s+/g, " ").trim()
-                             .replace(/ License$/i, "")
-                             .toLowerCase();
-  if (license != "view" && license != "unknown") {
-    return license;
-  }
-
-  const text = fetchLicenseFile(licenseLink.href);
+function identifyLicenseLink(uri) {
+  const text = fetchLicenseFile(uri);
   if (text == null) {
     return;
   }
@@ -139,42 +135,91 @@ function identifyProjectLicense(licenseLink) {
   }
 }
 
+function fetchLicenseFile(uriString) {
+  // We must replace https://github.com/<org>/<repo>/blob/<ref>/<subpath>
+  // with https://raw.githubusercontent.com/<org>/<repo>/<ref>/LICENSE
+
+  const uri = new URL(uriString);
+
+  uri.hostname = "raw.githubusercontent.com";
+
+  const path = uri.pathname;
+
+  var segments = path.slice(1).split("/");
+  if (segments.length < 4 || segments[2] != "blob") {
+    return null;
+  }
+
+  segments = segments.slice(0, 2).concat(segments.slice(3));
+  uri.pathname = "/" + segments.join("/");
+
+  console.info("downloading license file from", uri.href);
+
+  var req = new XMLHttpRequest();
+  req.open("GET", uri.href, false);
+  req.send();
+
+  if (req.status < 200 || req.status > 299) {
+    console.error("cannot fetch", uri.href, ":", "request failed with status",
+                  req.status);
+    return;
+  }
+
+  return req.responseText;
+}
+
 function isOSSLicense(license) {
   return !!license.toLowerCase().match(ossLicenseREAnchored);
 }
 
 function annotateProjectPage() {
-  const licenseLink = findLicenseLink();
-  if (!licenseLink) {
-    console.info("license link not found");
-    return;
-  }
+  const licenses = findLicenseNames();
+  console.info("identified licenses", licenses);
 
-  const license = identifyProjectLicense(licenseLink);
-  if (!license) {
-    console.info("cannot identify license");
-    return;
-  }
+  let state = "unknown";
+  let notOSSLicenses = [];
+  if (licenses.length > 0) {
+    let nbOSS = 0;
 
-  console.info("identified license", license);
+    licenses.forEach((license) => {
+      if (isOSSLicense(license)) {
+        nbOSS++;
+      } else {
+        notOSSLicenses.push(license);
+      }
+    });
+
+    if (nbOSS == 0) {
+      state = "not-oss";
+    } else if (nbOSS == licenses.length) {
+      state = "oss";
+    } else {
+      state = "partially-oss";
+    }
+  }
 
   var text, bgColor, fgColor, title
 
-  if (license == "unknown") {
+  if (state == "unknown") {
     bgColor = "#4c8cdc";
     fgColor = "white";
     text = "unknown";
     title = "The license cannot be identified.";
-  } else if (isOSSLicense(license)) {
+  } else if (state == "oss") {
     bgColor = "#347d39";
     fgColor = "white";
     text = "open source";
-    title = `The ${license} license is an OSI Approved License.`;
-  } else {
+    title = composeLicenseLabelText(licenses, notOSSLicenses);
+  } else if (state == "partially-oss") {
+    bgColor = "#d1902a";
+    fgColor = "white";
+    text = "partially open source";
+    title = composeLicenseLabelText(licenses, notOSSLicenses);
+  } else if (state == "not-oss") {
     bgColor = "#c14e4a";
     fgColor = "white";
     text = "not open source";
-    title = `The ${license} license is not an OSI Approved License.`;
+    title = composeLicenseLabelText(licenses, notOSSLicenses);
   }
 
   const label = createLicenseLabel(text, title, fgColor, bgColor);
@@ -183,20 +228,31 @@ function annotateProjectPage() {
     label.remove();
   });
 
-  const container = licenseLink.closest("details");
-  if (container) {
-    // Multi-license container (e.g. https://github.com/akka/akka)
-    container.after(label);
 
-    // The text displayed by GitHub for multi-license blocks is usually very
-    // long, there is not enough horizontal space in the colomn for the label.
-    // So we put the label next line. Not ideal, but you work with what you
-    // have.
-    label.style.display = "inline-block";
-    label.style.marginTop = "0.25rem";
+  const header = document.getElementById("repository-container-header");
+  const author = header.querySelector(".author");
+  const container = author.parentElement;
+
+  container.appendChild(label);
+}
+
+function composeLicenseLabelText(licenses, notOSSLicenses) {
+  let not = "";
+  if (notOSSLicenses.length > 0) {
+    not = "not ";
+  }
+
+  let license = "license";
+  if (licenses.length > 1) {
+    license = "licenses";
+  }
+
+  if (licenses.length == 1) {
+    return `${licenses[0]} is ${not}an Open Source ${license}.`
+  } else if (licenses.length == 2) {
+    return `${licenses.join(" and ")} are ${not}Open Source ${license}.`
   } else {
-    // Simplest, most common case
-    licenseLink.parentElement.appendChild(label);
+    return `${licenses.join(", ")} are ${not}Open Source ${license}.`
   }
 }
 
@@ -204,18 +260,15 @@ function createLicenseLabel(text, title, fgColor, bgColor) {
   const label = document.createElement("span");
 
   label.classList.add(labelClass);
+  label.classList.add("label"); // match the style of other GitHub labels
 
   label.appendChild(document.createTextNode(text));
 
   label.title = title;
 
-  label.style.marginLeft = "4px";
-  label.style.borderRadius = "6px";
-  label.style.padding = "1px 4px";
+  label.style.borderColor = bgColor;
   label.style.backgroundColor = bgColor;
   label.style.color = fgColor;
-  label.style.fontSize = "0.8rem";
-  label.style.fontVariant = "small-caps";
   label.style.cursor = "default";
 
   return label;
